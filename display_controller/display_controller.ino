@@ -37,10 +37,10 @@ public:
   }
 
   void refresh(const unsigned int delayTimeMs) {
-    for (unsigned int elapsedTime = 0; elapsedTime < delayTimeMs; elapsedTime += 10) {
-      for (uint8_t row = 0; row < 5; row++) {
+    for (unsigned int elapsedTime = 0; elapsedTime < delayTimeMs; elapsedTime += 12) {
+      for (uint8_t row = 0; row < 6; row++) {
         digitalWrite(row, HIGH);
-        for (uint8_t col = 0; col < 6; col++) {
+        for (uint8_t col = 0; col < 5; col++) {
           digitalWrite(A0 + col, (boolean)!this->getLedState(col, row));
         }
         /* For the red rows, we wait 4 milliseconds; for the green and blue rows,
