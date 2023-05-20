@@ -1,3 +1,6 @@
+// change to 1 for debugging messages
+#define SERIAL_DEBUG_MESSAGES_ENABLED 0
+
 enum class LedState : boolean { Dark = LOW, Bright = HIGH };
 LedState operator!(LedState state) {
   return (state == LedState::Dark) ? LedState::Bright : LedState::Dark;
@@ -36,21 +39,31 @@ public:
     return this->frameBuffer[col + row * 5];
   }
 
+  /**
+   * This function will update the display to show what's in the framebuffer,
+   * and do so on a 16 millisecond loop until delayTimeMs have passed. For
+   * the most accurate timing, delayTimeMs ought to be a multiple of 16.
+   */
   void refresh(const unsigned int delayTimeMs) {
-    for (unsigned int elapsedTime = 0; elapsedTime < delayTimeMs; elapsedTime += 12) {
+    for (unsigned int elapsedTime = 0; elapsedTime < delayTimeMs; elapsedTime += 16) {
       for (uint8_t row = 0; row < 6; row++) {
         digitalWrite(row, HIGH);
         for (uint8_t col = 0; col < 5; col++) {
           digitalWrite(A0 + col, (boolean)!this->getLedState(col, row));
         }
-        /* For the red rows, we wait 4 milliseconds; for the green and blue rows,
-         * we wait 1 millisecond. This helps balance out the brightnesses of the
-         * different colors.
+        /* For the red rows, we wait 3 milliseconds; for the green rows,
+         * we wait 1 millisecond; for the blue rows, we wait 4 milliseconds. 
+         * This helps balance out the brightnesses of the different colors.
          */
-        if (row == 0 || row == 3) {
-          delay(4);
-        } else {
-          delay(1);
+        switch (row) {
+          case 0: case 3:
+            delay(3);
+          break;
+          case 2: case 5:
+            delay(4);
+          break;
+          default:
+            delay(1);
         }
         digitalWrite(row, LOW);
       }
@@ -77,22 +90,82 @@ public:
   }
 };
 
+struct Point {
+  uint8_t col, row;
+  uint8_t col_floor, col_ceil;
+  Point(uint8_t col, uint8_t row, uint8_t col_floor, uint8_t col_ceil) {
+    this->col = col;
+    this->row = row;
+    this->col_floor = col_floor;
+    this->col_ceil = col_ceil;
+  }
+
+  void onFrameUpdate() {
+    if (this->col == this->col_floor) {
+      if (this->row == 0) {
+        this->col++;
+      } else {
+        this->row--;
+      }
+    } else if (this->col == this->col_ceil) {
+      if (this->row == 2) {
+        this->col--;
+      } else {
+        this->row++;
+      }
+    } else {
+      if (this->row == 0) {
+        this->col++;
+      } else {
+        this->col--;
+      }
+    }
+  }
+};
 
 DisplayController disp;
-uint8_t col, row;
+Point *points[2];
+uint8_t cyclesLow; // counts the number of times input pin 11 read LOW
+uint8_t cycleCounter;
+bool invertDisplay;
 void setup() {
-  col = 0;
-  row = 0;
+  points[0] = new Point(0, 0, 0, 3);
+  points[1] = new Point(4, 2, 1, 4);
+  pinMode(11, INPUT_PULLUP);
+  cycleCounter = 0;
+  cyclesLow = 0;
+  invertDisplay = false;
 }
 
 void loop() {
-  disp.setLedState(col, row, LedState::Bright);
-  disp.refresh(100);
-  disp.setLedState(col, row, LedState::Dark);
-  if (col == 4) {
-    row = !row;
-    col = 0;
+  if (digitalRead(11) == LOW) {
+    cyclesLow++;
+  } else if (cyclesLow > 0) {
+    cyclesLow--;
+  }
+  for (auto point : points) {
+    disp.setLedState(point->col, point->row, LedState::Bright);
+    point->onFrameUpdate();
+  }
+  if (cycleCounter == 0 && cyclesLow != 0) {
+    invertDisplay = !invertDisplay;
+  }
+  if (invertDisplay) {
+    disp.negateFrameBuffer();
+  }
+  disp.refresh(80);
+  disp.clearFrameBuffer();
+  if (cyclesLow > 3) {
+    cyclesLow = 3;
+  }
+  if (cycleCounter == 3) {
+    #if SERIAL_DEBUG_MESSAGES_ENABLED
+      Serial.print("cyclesLow == ");
+      Serial.print(cyclesLow);
+      Serial.println("");
+    #endif
+    cycleCounter = 0;
   } else {
-    col++;
+    cycleCounter++;
   }
 }
