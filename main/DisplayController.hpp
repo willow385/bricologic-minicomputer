@@ -1,7 +1,6 @@
-// change to 1 for debugging messages
-#define SERIAL_DEBUG_MESSAGES_ENABLED 0
+namespace Display {
 
-enum class LedState : boolean { Dark = LOW, Bright = HIGH };
+enum class LedState : bool { Dark = LOW, Bright = HIGH };
 LedState operator!(LedState state) {
   return (state == LedState::Dark) ? LedState::Bright : LedState::Dark;
 }
@@ -9,11 +8,11 @@ LedState operator!(LedState state) {
 constexpr uint8_t RowCount = 6;
 constexpr uint8_t ColumnCount = 5;
 
-class DisplayController {
+class Controller {
 private:
   LedState frameBuffer[30];
 public:
-  DisplayController(void) {
+  Controller(void) {
     for (uint8_t i = 0; i < 30; i++) {
       this->frameBuffer[i] = LedState::Dark;
     }
@@ -41,15 +40,25 @@ public:
 
   /**
    * This function will update the display to show what's in the framebuffer,
-   * and do so on a 16 millisecond loop until delayTimeMs have passed. For
-   * the most accurate timing, delayTimeMs ought to be a multiple of 16.
+   * and do so on about a 16 millisecond loop until delayTimeMs have passed. For
+   * the most accurate timing, `delayTimeMs` ought to be a multiple of 16.
+   *
+   * @param callbackData passed to `callback`
+   * @param callback called 3 times per 8ms on a loop during each refresh
    */
-  void refresh(const unsigned int delayTimeMs) {
-    for (unsigned int elapsedTime = 0; elapsedTime < delayTimeMs; elapsedTime += 16) {
+  void refresh(
+    const unsigned int delayTimeMs,
+    void *callbackData,
+    void (*callback)(void *)
+  ) {
+    auto startTime = millis();
+    auto endTime = startTime + delayTimeMs;
+    while (millis() < endTime) {
       for (uint8_t row = 0; row < 6; row++) {
+        callback(callbackData);
         digitalWrite(row, HIGH);
         for (uint8_t col = 0; col < 5; col++) {
-          digitalWrite(A0 + col, (boolean)!this->getLedState(col, row));
+          digitalWrite(A0 + col, (bool)!this->getLedState(col, row));
         }
         /* For the red rows, we wait 3 milliseconds; for the green rows,
          * we wait 1 millisecond; for the blue rows, we wait 4 milliseconds. 
@@ -90,31 +99,4 @@ public:
   }
 };
 
-DisplayController disp;
-bool previousClkValue;
-void setup() {
-  pinMode(6, OUTPUT);
-  digitalWrite(6, LOW);
-  pinMode(7, OUTPUT);
-  digitalWrite(7, HIGH);
-  pinMode(8,  INPUT_PULLUP);
-  pinMode(9,  INPUT_PULLUP);
-  pinMode(10, INPUT_PULLUP);
-}
-
-void loop() {
-  disp.clearFrameBuffer();
-  bool sw = digitalRead(8);
-  bool dt = digitalRead(9);
-  bool clk = digitalRead(10);
-  if (sw) {
-    for (uint8_t i = 0; i < 5; i++) disp.setLedState(i, 0, LedState::Bright);
-  }
-  if (dt) {
-    for (uint8_t i = 0; i < 5; i++) disp.setLedState(i, 1, LedState::Bright);
-  }
-  if (clk) {
-    for (uint8_t i = 0; i < 5; i++) disp.setLedState(i, 2, LedState::Bright);
-  }
-  disp.refresh(32);
-}
+} // namespace Display

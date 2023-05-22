@@ -1,0 +1,5 @@
+{
+    "port": "COM11",
+    "board": "arduino:samd:mkrwan1300",
+    "sketch": "main\\main.ino"
+}
