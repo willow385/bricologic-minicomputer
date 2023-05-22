@@ -43,16 +43,52 @@ void loop(void) {
       break;
       case TurnDirection::Left:
         if (pixelData->p.vertical) {
-          if (pixelData->p.y == 0) pixelData->p.y = 2; else pixelData->p.y--;
+          if (pixelData->p.y == 0) {
+            if (pixelData->p.x == 0) {
+              pixelData->p.x = 4;
+            } else {
+              pixelData->p.x--;
+            }
+            pixelData->p.y = 2;
+          } else {
+            pixelData->p.y--;
+          }
         } else {
-          if (pixelData->p.x == 0) pixelData->p.x = 4; else pixelData->p.x--;
+          if (pixelData->p.x == 0) {
+            if (pixelData->p.y == 0) {
+              pixelData->p.y = 2;
+            } else {
+              pixelData->p.y--;
+            }
+            pixelData->p.x = 4;
+          } else {
+            pixelData->p.x--;
+          }
         }
       break;
       case TurnDirection::Right:
         if (pixelData->p.vertical) {
-          if (pixelData->p.y == 2) pixelData->p.y = 0; else pixelData->p.y++;
+          if (pixelData->p.y == 2) {
+            if (pixelData->p.x == 4) {
+              pixelData->p.x = 0;
+            } else {
+              pixelData->p.x++;
+            }
+            pixelData->p.y = 0;
+          } else {
+            pixelData->p.y++;
+          }
         } else {
-          if (pixelData->p.x == 4) pixelData->p.x = 0; else pixelData->p.x++;
+          if (pixelData->p.x == 4) {
+            if (pixelData->p.y == 2) {
+              pixelData->p.y = 0;
+            } else {
+              pixelData->p.y++;
+            }
+            pixelData->p.x = 0;
+          } else {
+            pixelData->p.x++;
+          }
         }
     }
   });
