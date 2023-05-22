@@ -20,7 +20,10 @@ struct PixelData {
   InputDial::PinReader dial;
 } pixelData;
 Display::Controller display;
-void setup(void) { };
+
+void setup(void) {
+  return;
+}
 
 void loop(void) {
   display.clearFrameBuffer();
