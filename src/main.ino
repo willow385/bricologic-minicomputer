@@ -90,82 +90,31 @@ public:
   }
 };
 
-struct Point {
-  uint8_t col, row;
-  uint8_t col_floor, col_ceil;
-  Point(uint8_t col, uint8_t row, uint8_t col_floor, uint8_t col_ceil) {
-    this->col = col;
-    this->row = row;
-    this->col_floor = col_floor;
-    this->col_ceil = col_ceil;
-  }
-
-  void onFrameUpdate() {
-    if (this->col == this->col_floor) {
-      if (this->row == 0) {
-        this->col++;
-      } else {
-        this->row--;
-      }
-    } else if (this->col == this->col_ceil) {
-      if (this->row == 2) {
-        this->col--;
-      } else {
-        this->row++;
-      }
-    } else {
-      if (this->row == 0) {
-        this->col++;
-      } else {
-        this->col--;
-      }
-    }
-  }
-};
-
 DisplayController disp;
-Point *points[2];
-uint8_t cyclesLow; // counts the number of times input pin 11 read LOW
-uint8_t cycleCounter;
-bool invertDisplay;
+bool previousClkValue;
 void setup() {
-  points[0] = new Point(0, 0, 0, 3);
-  points[1] = new Point(4, 2, 1, 4);
-  pinMode(11, INPUT_PULLUP);
-  cycleCounter = 0;
-  cyclesLow = 0;
-  invertDisplay = false;
+  pinMode(6, OUTPUT);
+  digitalWrite(6, LOW);
+  pinMode(7, OUTPUT);
+  digitalWrite(7, HIGH);
+  pinMode(8,  INPUT_PULLUP);
+  pinMode(9,  INPUT_PULLUP);
+  pinMode(10, INPUT_PULLUP);
 }
 
 void loop() {
-  if (digitalRead(11) == LOW) {
-    cyclesLow++;
-  } else if (cyclesLow > 0) {
-    cyclesLow--;
-  }
-  for (auto point : points) {
-    disp.setLedState(point->col, point->row, LedState::Bright);
-    point->onFrameUpdate();
-  }
-  if (cycleCounter == 0 && cyclesLow != 0) {
-    invertDisplay = !invertDisplay;
-  }
-  if (invertDisplay) {
-    disp.negateFrameBuffer();
-  }
-  disp.refresh(80);
   disp.clearFrameBuffer();
-  if (cyclesLow > 3) {
-    cyclesLow = 3;
+  bool sw = digitalRead(8);
+  bool dt = digitalRead(9);
+  bool clk = digitalRead(10);
+  if (sw) {
+    for (uint8_t i = 0; i < 5; i++) disp.setLedState(i, 0, LedState::Bright);
   }
-  if (cycleCounter == 3) {
-    #if SERIAL_DEBUG_MESSAGES_ENABLED
-      Serial.print("cyclesLow == ");
-      Serial.print(cyclesLow);
-      Serial.println("");
-    #endif
-    cycleCounter = 0;
-  } else {
-    cycleCounter++;
+  if (dt) {
+    for (uint8_t i = 0; i < 5; i++) disp.setLedState(i, 1, LedState::Bright);
   }
+  if (clk) {
+    for (uint8_t i = 0; i < 5; i++) disp.setLedState(i, 2, LedState::Bright);
+  }
+  disp.refresh(32);
 }
